@@ -106,7 +106,7 @@ export default function Admin() {
               <span className="muted fs12">{p.oweLabel}</span>
             </div>
             <button
-              className={`smallBtn ${p.paid ? 'okBg' : 'warnBg warn'}`}
+              className={`smallBtn ${p.paid ? 'btnPrimary' : 'warnBg warn'}`}
               onClick={() => togglePlayerPaid(p.id)}
             >
               {p.paid ? 'Pago' : 'Marcar pago'}
@@ -153,8 +153,8 @@ export default function Admin() {
                 <span className="muted fs11">{u.email}</span>
               </div>
               <button
-                className={`smallBtn ${u.isAdmin ? 'okBg' : 'btnPrimary'}`}
-                style={!u.isAdmin ? { color: 'oklch(0.14 0.02 155)' } : undefined}
+                className={`smallBtn ${u.isAdmin ? 'btnGhost' : 'btnPrimary'}`}
+                style={u.isAdmin ? { color: 'oklch(0.7 0.15 30)' } : { color: 'oklch(0.14 0.02 155)' }}
                 disabled={busyUserId === u.id}
                 onClick={() => toggleAdmin(u)}
               >

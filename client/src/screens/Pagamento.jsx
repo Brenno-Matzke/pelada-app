@@ -26,11 +26,11 @@ export default function Pagamento() {
               <span className="fw6 fs14">{p.name}</span>
             </div>
             {p.isMe ? (
-              <button className={`smallBtn ${p.paid ? 'okBg' : 'warnBg warn'}`} onClick={() => togglePaid()}>
+              <button className={`smallBtn ${p.paid ? 'btnPrimary' : 'warnBg warn'}`} onClick={() => togglePaid()}>
                 {p.paid ? 'Pago' : 'Confirmar pagamento'}
               </button>
             ) : (
-              <span className={`badge ${p.paid ? 'okBg' : 'warnBg warn'}`}>{p.paid ? 'Pago' : 'Pendente'}</span>
+              <span className={`badge ${p.paid ? 'btnPrimary' : 'warnBg warn'}`}>{p.paid ? 'Pago' : 'Pendente'}</span>
             )}
           </div>
         ))}

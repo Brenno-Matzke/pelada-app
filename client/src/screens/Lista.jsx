@@ -70,7 +70,7 @@ export default function Lista() {
                   <span className="fw6 fs14">{p.name}{p.isMe ? ' (você)' : ''}</span>
                   <span className="muted fs11">{p.levelLabel}</span>
                 </div>
-                <span className="badge okBg" style={{ color: 'oklch(0.85 0.14 155)' }}>Confirmado</span>
+                <span className="badge btnPrimary">Confirmado</span>
               </div>
             ))}
             {waitlist.length > 0 && (

@@ -22,7 +22,6 @@ body {
 .accent { color: oklch(0.78 0.16 155); }
 .warn { color: oklch(0.78 0.15 70); }
 .warnBg { background: oklch(0.24 0.05 70); }
-.okBg { background: oklch(0.22 0.06 155); }
 
 .card { background: oklch(0.20 0.012 260); border-radius: 16px; padding: 16px; }
 
