@@ -1,0 +1,103 @@
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body {
+  margin: 0;
+  background: oklch(0.10 0.01 260);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+.app {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: oklch(0.16 0.012 260);
+  color: oklch(0.96 0.005 260);
+  display: flex;
+  flex-direction: column;
+}
+
+.h1 { font-family: 'Sora', system-ui, sans-serif; font-weight: 700; }
+.h2 { font-family: 'Sora', system-ui, sans-serif; font-weight: 600; }
+.muted { color: oklch(0.62 0.01 260); }
+.accent { color: oklch(0.78 0.16 155); }
+.warn { color: oklch(0.78 0.15 70); }
+.warnBg { background: oklch(0.24 0.05 70); }
+.okBg { background: oklch(0.22 0.06 155); }
+
+.card { background: oklch(0.20 0.012 260); border-radius: 16px; padding: 16px; }
+
+.btn {
+  border-radius: 14px; padding: 16px; text-align: center; font-weight: 600;
+  border: none; cursor: pointer; font-size: 16px; font-family: 'Inter', system-ui, sans-serif;
+  width: 100%;
+}
+.btn:disabled { opacity: .5; cursor: default; }
+.btnPrimary { background: oklch(0.78 0.16 155); color: oklch(0.14 0.02 155); }
+.btnGhost { background: oklch(0.24 0.012 260); color: oklch(0.96 0.005 260); }
+
+.inputWrap { display: flex; flex-direction: column; gap: 6px; }
+.input {
+  background: oklch(0.22 0.012 260); border: 1px solid oklch(0.3 0.01 260);
+  border-radius: 12px; padding: 14px; color: #fff; font-size: 15px;
+  font-family: 'Inter', system-ui, sans-serif; width: 100%;
+}
+
+.scroll { overflow-y: auto; flex: 1; }
+
+.tabbar {
+  display: flex; border-top: 1px solid oklch(0.26 0.01 260);
+  background: oklch(0.16 0.012 260); padding: 10px 8px 6px;
+  position: sticky; bottom: 0;
+}
+.tab {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  cursor: pointer; padding: 4px 0; background: none; border: none; font: inherit;
+}
+.tabLabel { font-size: 11px; font-weight: 600; }
+
+.avatar {
+  width: 40px; height: 40px; border-radius: 50%; background: oklch(0.28 0.02 260);
+  display: flex; align-items: center; justify-content: center; font-weight: 700;
+  font-size: 14px; flex-shrink: 0;
+}
+
+.rowline {
+  display: flex; align-items: center; gap: 12px; padding: 10px 0;
+  border-bottom: 1px solid oklch(0.22 0.01 260);
+}
+.badge { font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 999px; }
+
+.headerBar { padding: 18px 20px 14px; display: flex; align-items: center; justify-content: space-between; }
+.pill { padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; background: oklch(0.22 0.06 155); color: oklch(0.85 0.14 155); }
+
+.smallBtn { border-radius: 10px; padding: 8px 12px; font-size: 12px; font-weight: 600; border: none; cursor: pointer; }
+
+.tabChip {
+  padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 600; cursor: pointer;
+  background: oklch(0.22 0.012 260); color: oklch(0.85 0.005 260); border: none;
+}
+.tabChipActive { background: oklch(0.78 0.16 155); color: oklch(0.14 0.02 155); }
+
+.levelPill {
+  padding: 9px 14px; border-radius: 999px; font-size: 13px; font-weight: 600; cursor: pointer;
+  background: oklch(0.22 0.012 260); color: oklch(0.85 0.005 260); border: none;
+}
+.levelPillActive { background: oklch(0.78 0.16 155); color: oklch(0.14 0.02 155); }
+
+.fx { display: flex; }
+.col { display: flex; flex-direction: column; }
+.ac { align-items: center; }
+.jc { justify-content: center; }
+.jb { justify-content: space-between; }
+.f1 { flex: 1; }
+.wrap { flex-wrap: wrap; }
+.gap4 { gap: 4px; } .gap6 { gap: 6px; } .gap8 { gap: 8px; } .gap10 { gap: 10px; }
+.gap12 { gap: 12px; } .gap16 { gap: 16px; }
+.fw6 { font-weight: 600; } .fw7 { font-weight: 700; }
+.fs11 { font-size: 11px; } .fs12 { font-size: 12px; } .fs13 { font-size: 13px; }
+.fs14 { font-size: 14px; } .fs16 { font-size: 16px; } .fs20 { font-size: 20px; }
+.upper { text-transform: uppercase; letter-spacing: .04em; }
+.tc { text-align: center; }
+
+.errorText { color: oklch(0.72 0.18 30); font-size: 13px; }
+.loadingScreen { display: flex; align-items: center; justify-content: center; height: 100vh; color: oklch(0.62 0.01 260); }
