@@ -59,6 +59,8 @@ export function PeladaProvider({ children }) {
     promoteWaitlist: (userId) => runAction(() => api.promoteWaitlist(userId)),
     generateTeams: () => runAction(api.generateTeams),
     assignTeam: (userId, teamNumber) => runAction(() => api.assignTeam(userId, teamNumber)),
+    clearAllTeams: () => runAction(api.clearAllTeams),
+    clearTeam: (teamNumber) => runAction(() => api.clearTeam(teamNumber)),
   };
 
   return <PeladaContext.Provider value={value}>{children}</PeladaContext.Provider>;

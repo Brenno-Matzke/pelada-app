@@ -54,4 +54,6 @@ export const api = {
   generateTeams: () => request('/peladas/current/teams/generate', { method: 'POST' }),
   assignTeam: (userId, teamNumber) =>
     request('/peladas/current/teams', { method: 'PATCH', body: { userId, teamNumber } }),
+  clearAllTeams: () => request('/peladas/current/teams/clear', { method: 'POST' }),
+  clearTeam: (teamNumber) => request(`/peladas/current/teams/${teamNumber}/clear`, { method: 'POST' }),
 };

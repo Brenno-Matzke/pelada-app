@@ -10,7 +10,7 @@ function formatDate(iso) {
 
 export default function Lista() {
   const { user } = useAuth();
-  const { state, loading, error, confirm, cancel, assignTeam, generateTeams } = usePelada();
+  const { state, loading, error, confirm, cancel, assignTeam, generateTeams, clearAllTeams, clearTeam } = usePelada();
   const [view, setView] = useState('confirmados'); // 'confirmados' | 'times'
   const [busy, setBusy] = useState(false);
 
@@ -116,12 +116,20 @@ export default function Lista() {
                 confirmed={confirmed}
                 isAdmin={user?.isAdmin}
                 assignTeam={assignTeam}
+                clearTeam={clearTeam}
               />
             ))}
           </div>
           {user?.isAdmin && (
-            <div style={{ padding: '4px 20px 16px' }}>
+            <div className="col gap8" style={{ padding: '4px 20px 16px' }}>
               <button className="btn btnGhost" onClick={() => generateTeams()}>🎲 Gerar times aleatórios</button>
+              <button
+                className="btn btnGhost"
+                style={{ color: 'oklch(0.7 0.15 30)' }}
+                onClick={() => clearAllTeams()}
+              >
+                🗑️ Limpar todos os times
+              </button>
             </div>
           )}
         </>
@@ -130,7 +138,7 @@ export default function Lista() {
   );
 }
 
-function TeamCard({ team, confirmed, isAdmin, assignTeam }) {
+function TeamCard({ team, confirmed, isAdmin, assignTeam, clearTeam }) {
   const [editing, setEditing] = useState(false);
   const assignedIds = new Set(confirmed.filter((p) => p.teamNumber).map((p) => p.id));
   const available = confirmed.filter((p) => !assignedIds.has(p.id));
@@ -139,7 +147,27 @@ function TeamCard({ team, confirmed, isAdmin, assignTeam }) {
     <div className="card col gap10" style={{ marginBottom: 14 }}>
       <div className="fx jb ac">
         <span className="h2 fs16">{team.label}</span>
-        <span className="pill">{team.countLabel}</span>
+        <div className="fx ac gap8">
+          <span className="pill">{team.countLabel}</span>
+          {isAdmin && team.members.length > 0 && (
+            <button
+              type="button"
+              aria-label={`Limpar ${team.label}`}
+              onClick={() => clearTeam(team.number)}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 4,
+                color: 'oklch(0.7 0.15 30)',
+                fontSize: 16,
+                lineHeight: 1,
+              }}
+            >
+              🗑️
+            </button>
+          )}
+        </div>
       </div>
       {team.members.map((m) => (
         <div className="rowline" key={m.id}>

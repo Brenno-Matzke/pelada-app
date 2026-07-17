@@ -312,4 +312,21 @@ router.patch('/current/teams', requireAuth, requireAdmin, asyncHandler(async (re
   res.json(await serializeState(pelada.id, req.user.id));
 }));
 
+router.post('/current/teams/clear', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const pelada = await getCurrentPelada();
+  await db.run('UPDATE pelada_players SET team_number = NULL WHERE pelada_id = ?', pelada.id);
+  res.json(await serializeState(pelada.id, req.user.id));
+}));
+
+router.post('/current/teams/:teamNumber/clear', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const pelada = await getCurrentPelada();
+  const teamNumber = Number(req.params.teamNumber);
+  await db.run(
+    'UPDATE pelada_players SET team_number = NULL WHERE pelada_id = ? AND team_number = ?',
+    pelada.id,
+    teamNumber
+  );
+  res.json(await serializeState(pelada.id, req.user.id));
+}));
+
 module.exports = router;
