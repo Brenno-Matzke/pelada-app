@@ -8,53 +8,57 @@ function formatDate(iso) {
   return `${d}/${m}`;
 }
 
-/** Small round avatar. When the player has a photo, tapping it toggles an
+/** Small round avatar — tapping it (photo or just initials) toggles an
  *  inline preview (see PhotoPreview) instead of jumping straight to
  *  fullscreen — the fullscreen view is one more tap away, from the preview. */
 function Avatar({ person, onClick, style, bg }) {
-  if (person.avatarUrl) {
-    return (
-      <button
-        type="button"
-        className="avatar"
-        style={{ padding: 0, border: 'none', cursor: 'pointer', ...style }}
-        onClick={onClick}
-        aria-label={`Ver foto de ${person.name}`}
-      >
-        <img src={person.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-      </button>
-    );
-  }
   return (
-    <div className="avatar" style={{ ...(bg ? { background: bg } : null), ...style }}>
-      {person.initial}
-    </div>
+    <button
+      type="button"
+      className="avatar"
+      style={{ padding: 0, border: 'none', cursor: 'pointer', ...(bg ? { background: bg } : null), ...style }}
+      onClick={onClick}
+      aria-label={`Ver perfil de ${person.name}`}
+    >
+      {person.avatarUrl ? (
+        <img src={person.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      ) : (
+        person.initial
+      )}
+    </button>
   );
 }
 
 /** Inline "a bit bigger" preview shown below a row when its avatar is
- *  tapped — photo, name and level. Tapping the photo here opens the true
- *  fullscreen lightbox. */
+ *  tapped — name and level, plus either the photo (tapping it opens the
+ *  true fullscreen lightbox) or, for players without one, just a bigger
+ *  initials circle with nothing further to open. */
 function PhotoPreview({ person, subtitle, onOpenFull }) {
   return (
     <div className="fx ac gap12" style={{ padding: '2px 0 14px 0' }}>
-      <button
-        type="button"
-        onClick={onOpenFull}
-        aria-label={`Ampliar foto de ${person.name}`}
-        style={{
-          padding: 0,
-          border: 'none',
-          cursor: 'pointer',
-          borderRadius: 12,
-          overflow: 'hidden',
-          width: 84,
-          height: 84,
-          flexShrink: 0,
-        }}
-      >
-        <img src={person.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-      </button>
+      {person.avatarUrl ? (
+        <button
+          type="button"
+          onClick={onOpenFull}
+          aria-label={`Ampliar foto de ${person.name}`}
+          style={{
+            padding: 0,
+            border: 'none',
+            cursor: 'pointer',
+            borderRadius: 12,
+            overflow: 'hidden',
+            width: 84,
+            height: 84,
+            flexShrink: 0,
+          }}
+        >
+          <img src={person.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        </button>
+      ) : (
+        <div className="avatar" style={{ width: 84, height: 84, fontSize: 26, flexShrink: 0 }}>
+          {person.initial}
+        </div>
+      )}
       <div className="col gap4">
         <span className="fw6 fs16">{person.name}</span>
         <span className="muted fs13">{subtitle}</span>
@@ -144,7 +148,7 @@ export default function Lista() {
                 <div className="rowline">
                   <Avatar
                     person={p}
-                    onClick={() => p.avatarUrl && setExpandedId(expandedId === p.id ? null : p.id)}
+                    onClick={() => setExpandedId(expandedId === p.id ? null : p.id)}
                   />
                   <div className="f1 col" style={{ gap: 2 }}>
                     <span className="fw6 fs14">{p.name}{p.isMe ? ' (você)' : ''}</span>
@@ -152,7 +156,7 @@ export default function Lista() {
                   </div>
                   <span className="badge btnPrimary">Confirmado</span>
                 </div>
-                {expandedId === p.id && p.avatarUrl && (
+                {expandedId === p.id && (
                   <PhotoPreview person={p} subtitle={p.levelLabel} onOpenFull={() => setViewingPhoto(p)} />
                 )}
               </div>
@@ -166,14 +170,14 @@ export default function Lista() {
                       <Avatar
                         person={w}
                         bg="oklch(0.24 0.012 260)"
-                        onClick={() => w.avatarUrl && setExpandedId(expandedId === w.id ? null : w.id)}
+                        onClick={() => setExpandedId(expandedId === w.id ? null : w.id)}
                       />
                       <div className="f1 col" style={{ gap: 2 }}>
                         <span className="fw6 fs14">{w.name}{w.isMe ? ' (você)' : ''}</span>
                         <span className="muted fs12">Aguardando vaga</span>
                       </div>
                     </div>
-                    {expandedId === w.id && w.avatarUrl && (
+                    {expandedId === w.id && (
                       <PhotoPreview person={w} subtitle="Aguardando vaga" onOpenFull={() => setViewingPhoto(w)} />
                     )}
                   </div>
