@@ -20,7 +20,7 @@ app.use(
       : undefined // no ALLOWED_ORIGINS set (local dev) — allow any origin
   )
 );
-app.use(express.json());
+app.use(express.json({ limit: '1mb' })); // room for a compressed profile-photo data URL
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.use('/api/auth', authRouter);

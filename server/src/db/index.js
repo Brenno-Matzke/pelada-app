@@ -55,6 +55,15 @@ async function migrate() {
     )
   `);
 
+  // Column added after the initial release — ALTER TABLE ... ADD COLUMN has
+  // no IF NOT EXISTS in SQLite, so add it inside a try/catch that swallows
+  // only the "already exists" case (existing deployed DBs vs. fresh ones).
+  try {
+    await client.execute('ALTER TABLE users ADD COLUMN avatar_url TEXT');
+  } catch (e) {
+    if (!/duplicate column/i.test(e.message || '')) throw e;
+  }
+
   // Ensure there is always a single "current" pelada that the whole app
   // points at, matching the prototype's single-upcoming-session model.
   const current = await client.execute('SELECT id FROM peladas ORDER BY id LIMIT 1');

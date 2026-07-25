@@ -23,6 +23,7 @@ function publicUser(user) {
     email: user.email,
     skillLevel: user.skill_level,
     isAdmin: !!user.is_admin,
+    avatarUrl: user.avatar_url || null,
   };
 }
 

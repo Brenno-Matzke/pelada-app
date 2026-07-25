@@ -10,6 +10,32 @@ function initial(name) {
   return name.split(' ').map((w) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase();
 }
 
+/** Downscale + compress a picked image client-side before sending it to the
+ *  API, so a full-resolution gallery photo doesn't turn into a multi-MB
+ *  request body. */
+function resizeImageToDataUrl(file, maxSize = 256, quality = 0.8) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Não foi possível ler o arquivo'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error('Arquivo não é uma imagem válida'));
+      img.onload = () => {
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+        const w = Math.round(img.width * scale);
+        const h = Math.round(img.height * scale);
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function Perfil() {
   const { user, logout, refreshUser } = useAuth();
   const { state } = usePelada();
@@ -17,6 +43,7 @@ export default function Perfil() {
   const [name, setName] = useState(user?.name || '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   useEffect(() => setName(user?.name || ''), [user?.name]);
 
@@ -47,6 +74,32 @@ export default function Perfil() {
     await refreshUser();
   }
 
+  async function handlePhotoChange(e) {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow picking the same file again later
+    if (!file) return;
+
+    setError(null);
+    setUploadingPhoto(true);
+    try {
+      const dataUrl = await resizeImageToDataUrl(file);
+      await refreshUserWithProfile({ avatarUrl: dataUrl });
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
+
+  async function removePhoto() {
+    setError(null);
+    try {
+      await refreshUserWithProfile({ avatarUrl: null });
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   function handleLogout() {
     logout();
     navigate('/login');
@@ -58,7 +111,58 @@ export default function Perfil() {
   return (
     <div className="col f1" style={{ minHeight: 0, padding: '24px 20px' }}>
       <div className="col ac gap10" style={{ marginBottom: 24 }}>
-        <div className="avatar" style={{ width: 72, height: 72, fontSize: 22 }}>{initial(user?.name || '')}</div>
+        <label
+          style={{
+            position: 'relative',
+            width: 72,
+            height: 72,
+            cursor: 'pointer',
+            opacity: uploadingPhoto ? 0.6 : 1,
+          }}
+        >
+          <div className="avatar" style={{ width: 72, height: 72, fontSize: 22 }}>
+            {user?.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt=""
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            ) : (
+              initial(user?.name || '')
+            )}
+          </div>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handlePhotoChange}
+            disabled={uploadingPhoto}
+            style={{ display: 'none' }}
+          />
+          <span
+            className="fx ac jc"
+            style={{
+              position: 'absolute',
+              bottom: -2,
+              right: -2,
+              width: 24,
+              height: 24,
+              borderRadius: '50%',
+              background: 'oklch(0.78 0.16 155)',
+              fontSize: 12,
+            }}
+          >
+            📷
+          </span>
+        </label>
+        {user?.avatarUrl && (
+          <button
+            className="muted fs12"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+            onClick={removePhoto}
+          >
+            Remover foto
+          </button>
+        )}
         <div className="h2" style={{ fontSize: 18 }}>{user?.name}</div>
         <div className="muted fs13">{user?.isAdmin ? 'Administrador' : 'Jogador'}</div>
       </div>

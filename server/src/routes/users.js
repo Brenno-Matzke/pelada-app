@@ -32,7 +32,7 @@ router.patch('/:userId/admin', requireAuth, requireAdmin, asyncHandler(async (re
 }));
 
 router.patch('/me', requireAuth, asyncHandler(async (req, res) => {
-  const { name, skillLevel } = req.body || {};
+  const { name, skillLevel, avatarUrl } = req.body || {};
   const updates = [];
   const params = [];
 
@@ -45,6 +45,18 @@ router.patch('/me', requireAuth, asyncHandler(async (req, res) => {
     if (!SKILL_LEVELS.includes(skillLevel)) return res.status(400).json({ error: 'Nível inválido' });
     updates.push('skill_level = ?');
     params.push(skillLevel);
+  }
+  if (avatarUrl !== undefined) {
+    if (avatarUrl !== null) {
+      if (typeof avatarUrl !== 'string' || !avatarUrl.startsWith('data:image/')) {
+        return res.status(400).json({ error: 'Foto inválida' });
+      }
+      if (avatarUrl.length > 800_000) {
+        return res.status(400).json({ error: 'Foto muito grande' });
+      }
+    }
+    updates.push('avatar_url = ?');
+    params.push(avatarUrl);
   }
   if (!updates.length) return res.status(400).json({ error: 'Nada para atualizar' });
 
