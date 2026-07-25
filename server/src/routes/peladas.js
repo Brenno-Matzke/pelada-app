@@ -25,7 +25,7 @@ async function getCurrentPelada() {
 async function getRows(peladaId) {
   return db.all(
     `SELECT pp.id, pp.status, pp.paid, pp.team_number AS teamNumber, pp.joined_at AS joinedAt,
-            u.id AS userId, u.name, u.skill_level AS skillLevel
+            u.id AS userId, u.name, u.skill_level AS skillLevel, u.avatar_url AS avatarUrl
      FROM pelada_players pp
      JOIN users u ON u.id = pp.user_id
      WHERE pp.pelada_id = ?
@@ -58,6 +58,7 @@ async function serializeState(peladaId, requestingUserId) {
     id: r.userId,
     name: r.name,
     initial: initial(r.name),
+    avatarUrl: r.avatarUrl || null,
     skillLevel: r.skillLevel,
     levelLabel: `(${r.skillLevel})`,
     paid: !!r.paid,
@@ -70,6 +71,7 @@ async function serializeState(peladaId, requestingUserId) {
     id: r.userId,
     name: r.name,
     initial: initial(r.name),
+    avatarUrl: r.avatarUrl || null,
     skillLevel: r.skillLevel,
     isMe: r.userId === requestingUserId,
   }));

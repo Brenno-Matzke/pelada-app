@@ -8,11 +8,87 @@ function formatDate(iso) {
   return `${d}/${m}`;
 }
 
+/** Small round avatar. When the player has a photo, tapping it toggles an
+ *  inline preview (see PhotoPreview) instead of jumping straight to
+ *  fullscreen — the fullscreen view is one more tap away, from the preview. */
+function Avatar({ person, onClick, style, bg }) {
+  if (person.avatarUrl) {
+    return (
+      <button
+        type="button"
+        className="avatar"
+        style={{ padding: 0, border: 'none', cursor: 'pointer', ...style }}
+        onClick={onClick}
+        aria-label={`Ver foto de ${person.name}`}
+      >
+        <img src={person.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      </button>
+    );
+  }
+  return (
+    <div className="avatar" style={{ ...(bg ? { background: bg } : null), ...style }}>
+      {person.initial}
+    </div>
+  );
+}
+
+/** Inline "a bit bigger" preview shown below a row when its avatar is
+ *  tapped — photo, name and level. Tapping the photo here opens the true
+ *  fullscreen lightbox. */
+function PhotoPreview({ person, subtitle, onOpenFull }) {
+  return (
+    <div className="fx ac gap12" style={{ padding: '2px 0 14px 0' }}>
+      <button
+        type="button"
+        onClick={onOpenFull}
+        aria-label={`Ampliar foto de ${person.name}`}
+        style={{
+          padding: 0,
+          border: 'none',
+          cursor: 'pointer',
+          borderRadius: 12,
+          overflow: 'hidden',
+          width: 84,
+          height: 84,
+          flexShrink: 0,
+        }}
+      >
+        <img src={person.avatarUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+      </button>
+      <div className="col gap4">
+        <span className="fw6 fs16">{person.name}</span>
+        <span className="muted fs13">{subtitle}</span>
+      </div>
+    </div>
+  );
+}
+
+function PhotoLightbox({ person, onClose }) {
+  if (!person) return null;
+  return (
+    <div
+      onClick={onClose}
+      className="col ac jc gap12"
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 1000, padding: 24 }}
+    >
+      <img
+        src={person.avatarUrl}
+        alt={person.name}
+        style={{ maxWidth: '85vw', maxHeight: '70vh', borderRadius: 16, objectFit: 'contain' }}
+        onClick={(e) => e.stopPropagation()}
+      />
+      <div className="fw6 fs16" style={{ color: '#fff' }}>{person.name}</div>
+    </div>
+  );
+}
+
 export default function Lista() {
   const { user } = useAuth();
   const { state, loading, error, confirm, cancel, assignTeam, generateTeams, clearAllTeams, clearTeam } = usePelada();
   const [view, setView] = useState('confirmados'); // 'confirmados' | 'times'
   const [busy, setBusy] = useState(false);
+  const [expandedId, setExpandedId] = useState(null);
+  const [viewingPhoto, setViewingPhoto] = useState(null);
 
   if (loading) return <div className="loadingScreen">Carregando…</div>;
   if (!state) return <div className="loadingScreen errorText">{error || 'Erro ao carregar'}</div>;
@@ -64,25 +140,42 @@ export default function Lista() {
           <div className="scroll" style={{ padding: '0 20px 12px' }}>
             <div className="fs12 fw7 upper muted" style={{ margin: '6px 0 4px' }}>Confirmados</div>
             {confirmed.map((p) => (
-              <div className="rowline" key={p.id}>
-                <div className="avatar">{p.initial}</div>
-                <div className="f1 col" style={{ gap: 2 }}>
-                  <span className="fw6 fs14">{p.name}{p.isMe ? ' (você)' : ''}</span>
-                  <span className="muted fs11">{p.levelLabel}</span>
+              <div key={p.id}>
+                <div className="rowline">
+                  <Avatar
+                    person={p}
+                    onClick={() => p.avatarUrl && setExpandedId(expandedId === p.id ? null : p.id)}
+                  />
+                  <div className="f1 col" style={{ gap: 2 }}>
+                    <span className="fw6 fs14">{p.name}{p.isMe ? ' (você)' : ''}</span>
+                    <span className="muted fs11">{p.levelLabel}</span>
+                  </div>
+                  <span className="badge btnPrimary">Confirmado</span>
                 </div>
-                <span className="badge btnPrimary">Confirmado</span>
+                {expandedId === p.id && p.avatarUrl && (
+                  <PhotoPreview person={p} subtitle={p.levelLabel} onOpenFull={() => setViewingPhoto(p)} />
+                )}
               </div>
             ))}
             {waitlist.length > 0 && (
               <>
                 <div className="fs12 fw7 upper muted" style={{ margin: '16px 0 4px' }}>Lista de espera</div>
                 {waitlist.map((w) => (
-                  <div className="rowline" key={w.id}>
-                    <div className="avatar" style={{ background: 'oklch(0.24 0.012 260)' }}>{w.initial}</div>
-                    <div className="f1 col" style={{ gap: 2 }}>
-                      <span className="fw6 fs14">{w.name}{w.isMe ? ' (você)' : ''}</span>
-                      <span className="muted fs12">Aguardando vaga</span>
+                  <div key={w.id}>
+                    <div className="rowline">
+                      <Avatar
+                        person={w}
+                        bg="oklch(0.24 0.012 260)"
+                        onClick={() => w.avatarUrl && setExpandedId(expandedId === w.id ? null : w.id)}
+                      />
+                      <div className="f1 col" style={{ gap: 2 }}>
+                        <span className="fw6 fs14">{w.name}{w.isMe ? ' (você)' : ''}</span>
+                        <span className="muted fs12">Aguardando vaga</span>
+                      </div>
                     </div>
+                    {expandedId === w.id && w.avatarUrl && (
+                      <PhotoPreview person={w} subtitle="Aguardando vaga" onOpenFull={() => setViewingPhoto(w)} />
+                    )}
                   </div>
                 ))}
               </>
@@ -134,6 +227,8 @@ export default function Lista() {
           )}
         </>
       )}
+
+      <PhotoLightbox person={viewingPhoto} onClose={() => setViewingPhoto(null)} />
     </div>
   );
 }
