@@ -56,4 +56,8 @@ export const api = {
     request('/peladas/current/teams', { method: 'PATCH', body: { userId, teamNumber } }),
   clearAllTeams: () => request('/peladas/current/teams/clear', { method: 'POST' }),
   clearTeam: (teamNumber) => request(`/peladas/current/teams/${teamNumber}/clear`, { method: 'POST' }),
+
+  getVapidPublicKey: () => request('/push/vapid-public-key'),
+  subscribePush: (subscription) => request('/push/subscribe', { method: 'POST', body: subscription }),
+  unsubscribePush: (endpoint) => request('/push/unsubscribe', { method: 'POST', body: { endpoint } }),
 };

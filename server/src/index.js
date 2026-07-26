@@ -6,6 +6,8 @@ const db = require('./db');
 const { router: authRouter } = require('./routes/auth');
 const usersRouter = require('./routes/users');
 const peladasRouter = require('./routes/peladas');
+const pushRouter = require('./routes/push');
+const cronRouter = require('./routes/cron');
 
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || '')
   .split(',')
@@ -26,6 +28,8 @@ app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.use('/api/auth', authRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/peladas', peladasRouter);
+app.use('/api/push', pushRouter);
+app.use('/api/cron', cronRouter);
 
 app.use((err, req, res, next) => {
   console.error(err);

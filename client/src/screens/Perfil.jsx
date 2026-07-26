@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../AuthContext';
 import { usePelada } from '../PeladaContext';
 import { api } from '../api';
+import { pushSupported, getCurrentSubscription, subscribeToPush, unsubscribeFromPush } from '../push';
 
 const SKILL_LEVELS = ['Iniciante', 'Intermediário', 'Avançado', 'Profissional'];
 
@@ -44,8 +45,33 @@ export default function Perfil() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
 
   useEffect(() => setName(user?.name || ''), [user?.name]);
+
+  useEffect(() => {
+    if (!pushSupported()) return;
+    getCurrentSubscription().then((sub) => setPushEnabled(!!sub));
+  }, []);
+
+  async function togglePush() {
+    setError(null);
+    setPushBusy(true);
+    try {
+      if (pushEnabled) {
+        await unsubscribeFromPush();
+        setPushEnabled(false);
+      } else {
+        await subscribeToPush();
+        setPushEnabled(true);
+      }
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setPushBusy(false);
+    }
+  }
 
   async function saveName() {
     if (!name.trim() || name === user.name) return;
@@ -189,6 +215,26 @@ export default function Perfil() {
             ))}
           </div>
         </div>
+      </div>
+
+      <div className="card col gap10" style={{ marginBottom: 14 }}>
+        <div className="fw6 fs14" style={{ marginBottom: 4 }}>Notificações</div>
+        {pushSupported() ? (
+          <div className="fx jb ac">
+            <span className="muted fs13">Avisos da pelada</span>
+            <button
+              className={`levelPill ${pushEnabled ? 'levelPillActive' : ''}`}
+              onClick={togglePush}
+              disabled={pushBusy}
+            >
+              {pushEnabled ? 'Ativadas' : 'Desativadas'}
+            </button>
+          </div>
+        ) : (
+          <div className="muted fs13">
+            Esse navegador não suporta notificações (no iPhone, precisa instalar o app na tela de início primeiro).
+          </div>
+        )}
       </div>
 
       <div className="card col gap10" style={{ marginBottom: 14 }}>

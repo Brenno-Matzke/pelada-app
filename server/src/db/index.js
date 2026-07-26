@@ -55,13 +55,30 @@ async function migrate() {
     )
   `);
 
-  // Column added after the initial release — ALTER TABLE ... ADD COLUMN has
-  // no IF NOT EXISTS in SQLite, so add it inside a try/catch that swallows
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      endpoint TEXT NOT NULL UNIQUE,
+      p256dh TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+
+  // Columns added after the initial release — ALTER TABLE ... ADD COLUMN has
+  // no IF NOT EXISTS in SQLite, so add them inside a try/catch that swallows
   // only the "already exists" case (existing deployed DBs vs. fresh ones).
-  try {
-    await client.execute('ALTER TABLE users ADD COLUMN avatar_url TEXT');
-  } catch (e) {
-    if (!/duplicate column/i.test(e.message || '')) throw e;
+  const lateColumns = [
+    ['users', 'avatar_url TEXT'],
+    ['peladas', 'payment_reminder_sent_date TEXT'],
+  ];
+  for (const [table, def] of lateColumns) {
+    try {
+      await client.execute(`ALTER TABLE ${table} ADD COLUMN ${def}`);
+    } catch (e) {
+      if (!/duplicate column/i.test(e.message || '')) throw e;
+    }
   }
 
   // Ensure there is always a single "current" pelada that the whole app

@@ -2,6 +2,7 @@ const express = require('express');
 const db = require('../db');
 const { requireAuth, requireAdmin } = require('../middleware/auth');
 const asyncHandler = require('../asyncHandler');
+const { sendPushToAll } = require('../push');
 
 const router = express.Router();
 
@@ -123,11 +124,20 @@ router.patch('/current', requireAuth, requireAdmin, asyncHandler(async (req, res
     if (Number.isNaN(v) || v < 0) return res.status(400).json({ error: 'Valor total inválido' });
     updates.push('total_value = ?'); params.push(v);
   }
+  const listaAbertaChanged = listaAberta !== undefined && !!pelada.lista_aberta !== !!listaAberta;
   if (listaAberta !== undefined) { updates.push('lista_aberta = ?'); params.push(listaAberta ? 1 : 0); }
 
   if (updates.length) {
     params.push(pelada.id);
     await db.run(`UPDATE peladas SET ${updates.join(', ')} WHERE id = ?`, ...params);
+  }
+
+  if (listaAbertaChanged) {
+    sendPushToAll(
+      listaAberta
+        ? { title: 'Lista aberta!', body: 'Confirme sua presença pra próxima pelada.', url: '/lista' }
+        : { title: 'Lista fechada', body: 'A lista de presença fechou. Confira quem ficou confirmado!', url: '/lista' }
+    ).catch((e) => console.error('[push] falha ao notificar abertura/fechamento:', e.message));
   }
 
   res.json(await serializeState(pelada.id, req.user.id));

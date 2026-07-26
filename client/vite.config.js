@@ -6,7 +6,15 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       registerType: 'autoUpdate',
+      injectManifest: {
+        // The compressed profile-photo data URLs pushed through /peladas/current
+        // aren't build assets, so the default 2 MiB precache cap only needs to
+        // cover the app shell itself — leave it as-is.
+      },
       includeAssets: ['favicon.png'],
       manifest: {
         name: 'Pelada das Abelhas',
@@ -23,12 +31,6 @@ export default defineConfig({
           { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
           { src: '/icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
-      },
-      workbox: {
-        // The API lives on a different origin (Render) — the service
-        // worker's navigateFallback only needs to cover this app's own
-        // routes, so cross-origin API calls are never intercepted.
-        navigateFallback: '/index.html',
       },
     }),
   ],
