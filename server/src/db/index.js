@@ -66,6 +66,19 @@ async function migrate() {
     )
   `);
 
+  // One row per reminder actually sent for a pelada — supports multiple
+  // reminder days (e.g. +1 and +4 after the game) without ever double
+  // sending the same one, even if the cron endpoint gets hit twice.
+  await client.execute(`
+    CREATE TABLE IF NOT EXISTS payment_reminders_log (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      pelada_id INTEGER NOT NULL REFERENCES peladas(id) ON DELETE CASCADE,
+      sent_date TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      UNIQUE(pelada_id, sent_date)
+    )
+  `);
+
   // Columns added after the initial release — ALTER TABLE ... ADD COLUMN has
   // no IF NOT EXISTS in SQLite, so add them inside a try/catch that swallows
   // only the "already exists" case (existing deployed DBs vs. fresh ones).
