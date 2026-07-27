@@ -142,7 +142,16 @@ export default function Lista() {
       {view === 'confirmados' && (
         <>
           <div className="scroll" style={{ padding: '0 20px 12px' }}>
+            {pelada.cancelada && (
+              <div className="card col gap4" style={{ marginBottom: 16 }}>
+                <span className="warn fw6 fs14">Pelada cancelada essa semana</span>
+                <span className="muted fs13">Ninguém está confirmado. O admin avisa quando a lista reabrir.</span>
+              </div>
+            )}
             <div className="fs12 fw7 upper muted" style={{ margin: '6px 0 4px' }}>Confirmados</div>
+            {confirmed.length === 0 && (
+              <div className="muted fs13" style={{ padding: '4px 0 12px' }}>Ninguém confirmado ainda</div>
+            )}
             {confirmed.map((p) => (
               <div key={p.id}>
                 <div className="rowline">
