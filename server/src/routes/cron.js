@@ -39,6 +39,10 @@ router.get('/payment-reminders', requireCronSecret, asyncHandler(async (req, res
   const pelada = await db.get('SELECT * FROM peladas ORDER BY id LIMIT 1');
   const today = dateStringInTZ(new Date());
 
+  if (pelada.cancelada) {
+    return res.json({ sent: 0, reason: 'Pelada cancelada essa semana' });
+  }
+
   const isReminderDay = REMINDER_OFFSET_DAYS.some((offset) => addDays(pelada.date, offset) === today);
   if (!isReminderDay) {
     return res.json({ sent: 0, reason: 'Hoje não é um dos dias de lembrete' });

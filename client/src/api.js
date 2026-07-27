@@ -45,6 +45,7 @@ export const api = {
   updatePelada: (payload) => request('/peladas/current', { method: 'PATCH', body: payload }),
   confirm: () => request('/peladas/current/confirm', { method: 'POST' }),
   cancel: () => request('/peladas/current/cancel', { method: 'POST' }),
+  cancelPelada: () => request('/peladas/current/cancel-pelada', { method: 'POST' }),
   togglePaid: () => request('/peladas/current/paid', { method: 'PATCH' }),
 
   removePlayer: (userId) => request(`/peladas/current/players/${userId}`, { method: 'DELETE' }),

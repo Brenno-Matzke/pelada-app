@@ -93,6 +93,7 @@ async function serializeState(peladaId, requestingUserId) {
       endTime: pelada.end_time,
       totalValue: pelada.total_value,
       listaAberta: !!pelada.lista_aberta,
+      cancelada: !!pelada.cancelada,
       capacity: pelada.capacity,
     },
     confirmed,
@@ -125,7 +126,13 @@ router.patch('/current', requireAuth, requireAdmin, asyncHandler(async (req, res
     updates.push('total_value = ?'); params.push(v);
   }
   const listaAbertaChanged = listaAberta !== undefined && !!pelada.lista_aberta !== !!listaAberta;
-  if (listaAberta !== undefined) { updates.push('lista_aberta = ?'); params.push(listaAberta ? 1 : 0); }
+  if (listaAberta !== undefined) {
+    updates.push('lista_aberta = ?');
+    params.push(listaAberta ? 1 : 0);
+    // Reopening the list starts a fresh week — clear any previous cancellation
+    // so admins don't need a separate "un-cancel" action.
+    if (listaAberta) { updates.push('cancelada = 0'); }
+  }
 
   if (updates.length) {
     params.push(pelada.id);
@@ -143,6 +150,20 @@ router.patch('/current', requireAuth, requireAdmin, asyncHandler(async (req, res
   res.json(await serializeState(pelada.id, req.user.id));
 }));
 
+router.post('/current/cancel-pelada', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const pelada = await getCurrentPelada();
+  await db.run('DELETE FROM pelada_players WHERE pelada_id = ?', pelada.id);
+  await db.run('UPDATE peladas SET lista_aberta = 0, cancelada = 1 WHERE id = ?', pelada.id);
+
+  sendPushToAll({
+    title: 'Pelada cancelada',
+    body: 'A pelada dessa semana foi cancelada pelo admin.',
+    url: '/lista',
+  }).catch((e) => console.error('[push] falha ao notificar cancelamento:', e.message));
+
+  res.json(await serializeState(pelada.id, req.user.id));
+}));
+
 router.post('/current/confirm', requireAuth, asyncHandler(async (req, res) => {
   const pelada = await getCurrentPelada();
   const existing = await db.get(
@@ -151,6 +172,7 @@ router.post('/current/confirm', requireAuth, asyncHandler(async (req, res) => {
     req.user.id
   );
   if (existing) return res.status(409).json({ error: 'Você já está na lista' });
+  if (pelada.cancelada) return res.status(403).json({ error: 'Pelada cancelada essa semana' });
   if (!pelada.lista_aberta) return res.status(403).json({ error: 'Lista fechada pelo admin' });
 
   const countRow = await db.get(

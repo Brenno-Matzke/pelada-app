@@ -6,11 +6,36 @@ import TimeField from '../components/TimeField';
 
 export default function Admin() {
   const { user: me } = useAuth();
-  const { state, loading, error, updatePelada, togglePlayerPaid, removePlayer, promoteWaitlist } = usePelada();
+  const {
+    state,
+    loading,
+    error,
+    updatePelada,
+    togglePlayerPaid,
+    removePlayer,
+    promoteWaitlist,
+    cancelPelada,
+  } = usePelada();
 
   const [users, setUsers] = useState([]);
   const [usersError, setUsersError] = useState(null);
   const [busyUserId, setBusyUserId] = useState(null);
+  const [cancelling, setCancelling] = useState(false);
+
+  async function handleCancelPelada() {
+    const sure = window.confirm(
+      'Cancelar a pelada dessa semana? Todo mundo confirmado e na lista de espera será removido, e a lista fica bloqueada até você reabrir pra próxima semana.'
+    );
+    if (!sure) return;
+    setCancelling(true);
+    try {
+      await cancelPelada();
+    } catch (e) {
+      // surfaced via context error state
+    } finally {
+      setCancelling(false);
+    }
+  }
 
   useEffect(() => {
     api
@@ -95,6 +120,21 @@ export default function Admin() {
               {pelada.listaAberta ? 'Aberta' : 'Fechada'}
             </button>
           </div>
+          {pelada.cancelada ? (
+            <div className="fx jb ac">
+              <span className="warn fs13 fw6">Pelada cancelada essa semana</span>
+              <span className="muted fs12">Reabra a lista pra desfazer</span>
+            </div>
+          ) : (
+            <button
+              className="smallBtn btnGhost"
+              style={{ color: 'oklch(0.7 0.15 30)', alignSelf: 'flex-start' }}
+              onClick={handleCancelPelada}
+              disabled={cancelling}
+            >
+              Cancelar pelada da semana
+            </button>
+          )}
         </div>
 
         <div className="fs12 fw7 upper muted" style={{ margin: '6px 0 8px' }}>Jogadores confirmados</div>

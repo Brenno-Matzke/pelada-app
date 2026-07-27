@@ -186,7 +186,11 @@ export default function Lista() {
             )}
           </div>
           <div style={{ padding: '12px 20px 16px' }}>
-            {pelada.listaAberta ? (
+            {pelada.cancelada ? (
+              <div className="btn btnGhost warn" style={{ opacity: 0.8, cursor: 'default' }}>
+                Pelada cancelada essa semana
+              </div>
+            ) : pelada.listaAberta ? (
               <button
                 className={`btn ${meConfirmed || meWaitlisted ? 'btnGhost' : 'btnPrimary'}`}
                 onClick={handleToggleConfirm}

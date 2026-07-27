@@ -85,6 +85,7 @@ async function migrate() {
   const lateColumns = [
     ['users', 'avatar_url TEXT'],
     ['peladas', 'payment_reminder_sent_date TEXT'],
+    ['peladas', 'cancelada INTEGER NOT NULL DEFAULT 0'],
   ];
   for (const [table, def] of lateColumns) {
     try {

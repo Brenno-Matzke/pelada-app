@@ -52,6 +52,7 @@ export function PeladaProvider({ children }) {
     refresh,
     confirm: () => runAction(api.confirm),
     cancel: () => runAction(api.cancel),
+    cancelPelada: () => runAction(api.cancelPelada),
     togglePaid: () => runAction(api.togglePaid),
     updatePelada: (payload) => runAction(() => api.updatePelada(payload)),
     removePlayer: (userId) => runAction(() => api.removePlayer(userId)),
