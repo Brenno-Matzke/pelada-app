@@ -19,8 +19,16 @@ function initial(name) {
     .toUpperCase();
 }
 
+// "Current" pelada is always the most recently created row — the one people
+// confirm presence for. "Previous" (if any) is the one before it, kept
+// around only so late payments/reminders still work after admin starts a
+// new week; see /current/new-week.
 async function getCurrentPelada() {
-  return db.get('SELECT * FROM peladas ORDER BY id LIMIT 1');
+  return db.get('SELECT * FROM peladas ORDER BY id DESC LIMIT 1');
+}
+
+async function getPreviousPelada() {
+  return db.get('SELECT * FROM peladas ORDER BY id DESC LIMIT 1 OFFSET 1');
 }
 
 async function getRows(peladaId) {
@@ -47,15 +55,8 @@ async function promoteNextWaitlisted(peladaId) {
   return next;
 }
 
-async function serializeState(peladaId, requestingUserId) {
-  const pelada = await db.get('SELECT * FROM peladas WHERE id = ?', peladaId);
-  const rows = await getRows(peladaId);
-  const confirmedRows = rows.filter((r) => r.status === 'confirmed');
-  const waitlistRows = rows.filter((r) => r.status === 'waitlist');
-
-  const perPerson = confirmedRows.length ? pelada.total_value / confirmedRows.length : 0;
-
-  const confirmed = confirmedRows.map((r) => ({
+function mapConfirmed(confirmedRows, perPerson, requestingUserId) {
+  return confirmedRows.map((r) => ({
     id: r.userId,
     name: r.name,
     initial: initial(r.name),
@@ -67,6 +68,16 @@ async function serializeState(peladaId, requestingUserId) {
     oweLabel: r.paid ? 'Em dia' : `Deve R$ ${perPerson.toFixed(2).replace('.', ',')}`,
     teamNumber: r.teamNumber,
   }));
+}
+
+async function serializeState(peladaId, requestingUserId) {
+  const pelada = await db.get('SELECT * FROM peladas WHERE id = ?', peladaId);
+  const rows = await getRows(peladaId);
+  const confirmedRows = rows.filter((r) => r.status === 'confirmed');
+  const waitlistRows = rows.filter((r) => r.status === 'waitlist');
+
+  const perPerson = confirmedRows.length ? pelada.total_value / confirmedRows.length : 0;
+  const confirmed = mapConfirmed(confirmedRows, perPerson, requestingUserId);
 
   const waitlist = waitlistRows.map((r) => ({
     id: r.userId,
@@ -84,6 +95,9 @@ async function serializeState(peladaId, requestingUserId) {
   });
 
   const me = rows.find((r) => r.userId === requestingUserId) || null;
+
+  const previousPelada = await getPreviousPelada();
+  const previous = previousPelada ? await serializePaymentSummary(previousPelada.id, requestingUserId) : null;
 
   return {
     pelada: {
@@ -103,6 +117,27 @@ async function serializeState(peladaId, requestingUserId) {
     paidCount: confirmed.filter((p) => p.paid).length,
     perPerson: Number(perPerson.toFixed(2)),
     me: me ? { status: me.status, paid: !!me.paid, teamNumber: me.teamNumber } : null,
+    previous,
+  };
+}
+
+/** Lightweight view of a past pelada — just enough for the payment
+ *  screens; no teams/waitlist, since the game already happened. */
+async function serializePaymentSummary(peladaId, requestingUserId) {
+  const pelada = await db.get('SELECT * FROM peladas WHERE id = ?', peladaId);
+  const rows = await getRows(peladaId);
+  const confirmedRows = rows.filter((r) => r.status === 'confirmed');
+  const perPerson = confirmedRows.length ? pelada.total_value / confirmedRows.length : 0;
+  const confirmed = mapConfirmed(confirmedRows, perPerson, requestingUserId);
+
+  return {
+    id: pelada.id,
+    date: pelada.date,
+    totalValue: pelada.total_value,
+    perPerson: Number(perPerson.toFixed(2)),
+    confirmed,
+    confirmedCount: confirmed.length,
+    paidCount: confirmed.filter((p) => p.paid).length,
   };
 }
 
@@ -148,6 +183,39 @@ router.patch('/current', requireAuth, requireAdmin, asyncHandler(async (req, res
   }
 
   res.json(await serializeState(pelada.id, req.user.id));
+}));
+
+router.post('/current/new-week', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const current = await getCurrentPelada();
+
+  // Keep at most one week of history: current -> becomes "previous", and
+  // whatever was already "previous" gets purged for good.
+  const countRow = await db.get('SELECT COUNT(*) AS c FROM peladas');
+  if (countRow.c >= 2) {
+    const oldest = await db.get('SELECT id FROM peladas ORDER BY id ASC LIMIT 1');
+    await db.run('DELETE FROM peladas WHERE id = ?', oldest.id);
+  }
+
+  const nextDate = new Date(`${current.date}T12:00:00Z`);
+  nextDate.setUTCDate(nextDate.getUTCDate() + 7);
+
+  const info = await db.run(
+    `INSERT INTO peladas (date, start_time, end_time, total_value, lista_aberta, cancelada, capacity)
+     VALUES (?, ?, ?, ?, 1, 0, ?)`,
+    nextDate.toISOString().slice(0, 10),
+    current.start_time,
+    current.end_time,
+    current.total_value,
+    current.capacity
+  );
+
+  sendPushToAll({
+    title: 'Lista aberta!',
+    body: 'Confirme sua presença pra próxima pelada.',
+    url: '/lista',
+  }).catch((e) => console.error('[push] falha ao notificar nova semana:', e.message));
+
+  res.status(201).json(await serializeState(info.lastInsertRowid, req.user.id));
 }));
 
 router.post('/current/cancel-pelada', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
@@ -217,6 +285,39 @@ router.patch('/current/paid', requireAuth, asyncHandler(async (req, res) => {
 
   await db.run('UPDATE pelada_players SET paid = ? WHERE id = ?', existing.paid ? 0 : 1, existing.id);
   res.json(await serializeState(pelada.id, req.user.id));
+}));
+
+router.patch('/previous/paid', requireAuth, asyncHandler(async (req, res) => {
+  const previous = await getPreviousPelada();
+  if (!previous) return res.status(404).json({ error: 'Não há pelada anterior' });
+
+  const existing = await db.get(
+    'SELECT * FROM pelada_players WHERE pelada_id = ? AND user_id = ?',
+    previous.id,
+    req.user.id
+  );
+  if (!existing) return res.status(404).json({ error: 'Você não estava na pelada anterior' });
+
+  await db.run('UPDATE pelada_players SET paid = ? WHERE id = ?', existing.paid ? 0 : 1, existing.id);
+  const current = await getCurrentPelada();
+  res.json(await serializeState(current.id, req.user.id));
+}));
+
+router.patch('/previous/players/:userId/paid', requireAuth, requireAdmin, asyncHandler(async (req, res) => {
+  const previous = await getPreviousPelada();
+  if (!previous) return res.status(404).json({ error: 'Não há pelada anterior' });
+
+  const userId = Number(req.params.userId);
+  const existing = await db.get(
+    'SELECT * FROM pelada_players WHERE pelada_id = ? AND user_id = ?',
+    previous.id,
+    userId
+  );
+  if (!existing) return res.status(404).json({ error: 'Jogador não estava na pelada anterior' });
+
+  await db.run('UPDATE pelada_players SET paid = ? WHERE id = ?', existing.paid ? 0 : 1, existing.id);
+  const current = await getCurrentPelada();
+  res.json(await serializeState(current.id, req.user.id));
 }));
 
 router.delete('/current/players/:userId', requireAuth, requireAdmin, asyncHandler(async (req, res) => {

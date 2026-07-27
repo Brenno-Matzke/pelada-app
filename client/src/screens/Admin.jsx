@@ -4,6 +4,12 @@ import { useAuth } from '../AuthContext';
 import { api } from '../api';
 import TimeField from '../components/TimeField';
 
+function formatDate(iso) {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}`;
+}
+
 export default function Admin() {
   const { user: me } = useAuth();
   const {
@@ -15,12 +21,15 @@ export default function Admin() {
     removePlayer,
     promoteWaitlist,
     cancelPelada,
+    startNewWeek,
+    togglePreviousPlayerPaid,
   } = usePelada();
 
   const [users, setUsers] = useState([]);
   const [usersError, setUsersError] = useState(null);
   const [busyUserId, setBusyUserId] = useState(null);
   const [cancelling, setCancelling] = useState(false);
+  const [startingWeek, setStartingWeek] = useState(false);
 
   async function handleCancelPelada() {
     const sure = window.confirm(
@@ -34,6 +43,21 @@ export default function Admin() {
       // surfaced via context error state
     } finally {
       setCancelling(false);
+    }
+  }
+
+  async function handleStartNewWeek() {
+    const sure = window.confirm(
+      'Iniciar nova semana? A pelada atual vira histórico (só pra controle de pagamento) e uma lista nova e vazia é aberta pra todo mundo confirmar de novo.'
+    );
+    if (!sure) return;
+    setStartingWeek(true);
+    try {
+      await startNewWeek();
+    } catch (e) {
+      // surfaced via context error state
+    } finally {
+      setStartingWeek(false);
     }
   }
 
@@ -60,7 +84,8 @@ export default function Admin() {
   if (loading) return <div className="loadingScreen">Carregando…</div>;
   if (!state) return <div className="loadingScreen errorText">{error || 'Erro ao carregar'}</div>;
 
-  const { pelada, confirmed, waitlist, confirmedCount, paidCount, perPerson } = state;
+  const { pelada, confirmed, waitlist, confirmedCount, paidCount, perPerson, previous } = state;
+  const previousUnpaid = previous ? previous.confirmed.filter((p) => !p.paid) : [];
 
   return (
     <div className="col f1" style={{ minHeight: 0 }}>
@@ -135,7 +160,38 @@ export default function Admin() {
               Cancelar pelada da semana
             </button>
           )}
+          <button
+            className="smallBtn btnPrimary"
+            style={{ color: 'oklch(0.14 0.02 155)', alignSelf: 'flex-start' }}
+            onClick={handleStartNewWeek}
+            disabled={startingWeek}
+          >
+            Iniciar nova semana
+          </button>
         </div>
+
+        {previous && previousUnpaid.length > 0 && (
+          <>
+            <div className="fs12 fw7 upper muted" style={{ margin: '6px 0 8px' }}>
+              Pagamentos pendentes da pelada de {formatDate(previous.date)}
+            </div>
+            {previousUnpaid.map((p) => (
+              <div className="rowline" key={p.id}>
+                <div className="avatar">{p.initial}</div>
+                <div className="f1 col" style={{ gap: 2 }}>
+                  <span className="fw6 fs14">{p.name}</span>
+                  <span className="muted fs12">{p.oweLabel}</span>
+                </div>
+                <button
+                  className="smallBtn warnBg warn"
+                  onClick={() => togglePreviousPlayerPaid(p.id)}
+                >
+                  Marcar pago
+                </button>
+              </div>
+            ))}
+          </>
+        )}
 
         <div className="fs12 fw7 upper muted" style={{ margin: '6px 0 8px' }}>Jogadores confirmados</div>
         {confirmed.map((p) => (

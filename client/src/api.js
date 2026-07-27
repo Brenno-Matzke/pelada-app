@@ -46,7 +46,10 @@ export const api = {
   confirm: () => request('/peladas/current/confirm', { method: 'POST' }),
   cancel: () => request('/peladas/current/cancel', { method: 'POST' }),
   cancelPelada: () => request('/peladas/current/cancel-pelada', { method: 'POST' }),
+  startNewWeek: () => request('/peladas/current/new-week', { method: 'POST' }),
   togglePaid: () => request('/peladas/current/paid', { method: 'PATCH' }),
+  togglePreviousPaid: () => request('/peladas/previous/paid', { method: 'PATCH' }),
+  togglePreviousPlayerPaid: (userId) => request(`/peladas/previous/players/${userId}/paid`, { method: 'PATCH' }),
 
   removePlayer: (userId) => request(`/peladas/current/players/${userId}`, { method: 'DELETE' }),
   togglePlayerPaid: (userId) => request(`/peladas/current/players/${userId}/paid`, { method: 'PATCH' }),

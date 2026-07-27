@@ -36,47 +36,59 @@ function requireCronSecret(req, res, next) {
 }
 
 router.get('/payment-reminders', requireCronSecret, asyncHandler(async (req, res) => {
-  const pelada = await db.get('SELECT * FROM peladas ORDER BY id LIMIT 1');
+  // Up to two peladas can exist at once (current + previous, see
+  // /current/new-week) — check both independently so the second
+  // (+4 day) reminder still fires for last week's stragglers even after
+  // the admin has already started the new week.
+  const peladas = await db.all('SELECT * FROM peladas');
   const today = dateStringInTZ(new Date());
+  const results = [];
 
-  if (pelada.cancelada) {
-    return res.json({ sent: 0, reason: 'Pelada cancelada essa semana' });
+  for (const pelada of peladas) {
+    if (pelada.cancelada) {
+      results.push({ peladaId: pelada.id, sent: 0, reason: 'Pelada cancelada essa semana' });
+      continue;
+    }
+
+    const isReminderDay = REMINDER_OFFSET_DAYS.some((offset) => addDays(pelada.date, offset) === today);
+    if (!isReminderDay) {
+      results.push({ peladaId: pelada.id, sent: 0, reason: 'Hoje não é um dos dias de lembrete' });
+      continue;
+    }
+
+    const alreadySent = await db.get(
+      'SELECT id FROM payment_reminders_log WHERE pelada_id = ? AND sent_date = ?',
+      pelada.id,
+      today
+    );
+    if (alreadySent) {
+      results.push({ peladaId: pelada.id, sent: 0, reason: 'Lembrete já enviado hoje' });
+      continue;
+    }
+
+    const unpaid = await db.all(
+      `SELECT u.id FROM pelada_players pp
+       JOIN users u ON u.id = pp.user_id
+       WHERE pp.pelada_id = ? AND pp.status = 'confirmed' AND pp.paid = 0`,
+      pelada.id
+    );
+
+    await sendPushToUsers(unpaid.map((u) => u.id), {
+      title: 'Lembrete de pagamento',
+      body: 'Não esquece de pagar a pelada de domingo!',
+      url: '/pagamento',
+    });
+
+    await db.run(
+      'INSERT INTO payment_reminders_log (pelada_id, sent_date) VALUES (?, ?)',
+      pelada.id,
+      today
+    );
+
+    results.push({ peladaId: pelada.id, sent: unpaid.length });
   }
 
-  const isReminderDay = REMINDER_OFFSET_DAYS.some((offset) => addDays(pelada.date, offset) === today);
-  if (!isReminderDay) {
-    return res.json({ sent: 0, reason: 'Hoje não é um dos dias de lembrete' });
-  }
-
-  const alreadySent = await db.get(
-    'SELECT id FROM payment_reminders_log WHERE pelada_id = ? AND sent_date = ?',
-    pelada.id,
-    today
-  );
-  if (alreadySent) {
-    return res.json({ sent: 0, reason: 'Lembrete já enviado hoje' });
-  }
-
-  const unpaid = await db.all(
-    `SELECT u.id FROM pelada_players pp
-     JOIN users u ON u.id = pp.user_id
-     WHERE pp.pelada_id = ? AND pp.status = 'confirmed' AND pp.paid = 0`,
-    pelada.id
-  );
-
-  await sendPushToUsers(unpaid.map((u) => u.id), {
-    title: 'Lembrete de pagamento',
-    body: 'Não esquece de pagar a pelada de domingo!',
-    url: '/pagamento',
-  });
-
-  await db.run(
-    'INSERT INTO payment_reminders_log (pelada_id, sent_date) VALUES (?, ?)',
-    pelada.id,
-    today
-  );
-
-  res.json({ sent: unpaid.length });
+  res.json({ results });
 }));
 
 module.exports = router;
